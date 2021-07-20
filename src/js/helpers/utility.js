@@ -1,5 +1,5 @@
 // Debounce
-function debounce(func, wait, immediate) {
+export function debounce(func, wait, immediate) {
   var timeout;
   return function() {
       var context = this, args = arguments;
@@ -16,16 +16,25 @@ function debounce(func, wait, immediate) {
 
 // Utility for setting multiple attributes (NS specific for SVG)
 // Borrowed and slightly modified from gomakethings.com
-var setAttributesNS = function (elem, atts) {
+export var setAttributesNS = function (elem, atts) {
 	atts.forEach(function (attribute) {
     attribute = Object.entries(attribute)[0]
 		elem.setAttributeNS(null, attribute[0], attribute[1]);
 	});
 };
 
+export function createSVGElement(parent, nodeType, attributes, content) {
+  const svgns = "http://www.w3.org/2000/svg";
+  const element = document.createElementNS(svgns, nodeType);
+  setAttributesNS(element, attributes);
+  if(content) {element.textContent = content;}
+  parent.appendChild(element);
+  return element;
+}
+
 // nice scale utility
 // source :  https://stackoverflow.com/a/8855530
-function calculateTicks(min, max, tickCount) {
+export function calculateTicks(min, max, tickCount) {
   var span = max - min,
       step = Math.pow(10, Math.floor(Math.log(span / tickCount) / Math.LN10)),
       err = tickCount / span * step;
@@ -41,8 +50,13 @@ function calculateTicks(min, max, tickCount) {
       ticks = [];
 
   // now generate ticks
-  for (i=tstart; i < tstop; i += step) {
+  for (let i = tstart; i < tstop; i += step) {
       ticks.push(i);  
-  } 
+  }
+
   return ticks;
+}
+
+export function _select (selector, parent) {
+  return (parent ? parent : document).querySelector(selector);
 }
