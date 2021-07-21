@@ -5,14 +5,14 @@
    * generate a header object and data array from an HTML table
    *
    * @param {node} table - an html table wrapper 
-   * @return {array} The header object and data array in an array form
+   * @return {number[]} The header object and data array in an array form
    *
    * @example
    *
    *     let [header, datas] = tableToJson(tableNode)
    */
 
-  function tableToJson(table) { 
+  function _tableToJson(table) { 
     let header = {
       "x": table.rows[0].cells[0].innerHTML,
       "y": table.rows[0].cells[1].innerHTML
@@ -31,8 +31,94 @@
     return [header, datas];
   }
 
+  /**
+   * Utility for setting multiple attributes (NS specific for SVG)
+   * @source Borrowed and slightly modified from gomakethings.com
+   * @param {node} elem - NS specific DOM node
+   * @param {Object[]} atts - array of attributes
+   * @param {string} attribute[0] - name of the attribute
+   * @param {string} attribute[1] - value of the attribute
+   */
+  function _setAttributesNS (elem, atts) {
+    console.log(atts);
+  	atts.forEach(function (attribute) {
+      attribute = Object.entries(attribute)[0];
+  		elem.setAttributeNS(null, attribute[0], attribute[1]);
+  	});
+  }
+  /**
+   * Utility for creating and inserting into the DOM a new SVG element
+   * @param {node} parent - node in which the new element is inserted
+   * @param {string} nodeType - type of node created (line, circle, text...)
+   * @param {Object[]} attributes - array of attributes
+   * @param {string} [content] - Optional textContent of the node
+   * @returns {node} SVG element created
+   * 
+   * @example
+   * const labelY = _createSVGElement(someNodeVariable, 'text', [
+   *   {'x': 10},
+   *   {'y': 50},
+   * ], 'I am the label of Y axis');
+   */
+  function _createSVGElement(parent, nodeType, attributes, content) {
+    const svgns = "http://www.w3.org/2000/svg";
+    const element = document.createElementNS(svgns, nodeType);
+    _setAttributesNS(element, attributes);
+    if(content) {element.textContent = content;}
+    parent.appendChild(element);
+    return element;
+  }
+
+
+  /**
+   * Helper fonction for querySelector()
+   * @source https://gomakethings.com/an-easier-way-to-get-elements-in-the-dom-with-vanilla-js/
+   * @param {string} selector - String query to look for
+   * @param {node} [parent=document] - Optional parent of the query
+   * @returns {node} DOM Element queried
+   */
+  function _select (selector, parent) {
+    return (parent ? parent : document).querySelector(selector);
+  }
+
+  /**
+   * nice scale utility
+   * @source  https://stackoverflow.com/a/8855530
+   * 
+   * @param {number} min - minimum value
+   * @param {number} max - maximum value
+   * @param {number} tickCount - number of steps wished (-+ 2 steps)
+   * @returns {array} array of ticks values
+   * 
+   * @example
+   * // returns [ 0, 500, 1000, 1500, 2000 ]
+   * _calculateTicks(0, 2200, 6)
+   */
+  function _calculateTicks(min, max, tickCount) {
+    let span = max - min,
+        step = Math.pow(10, Math.floor(Math.log(span / tickCount) / Math.LN10)),
+        err = tickCount / span * step;
+
+    // Filter ticks to get closer to the desired count.
+    if (err <= .15) step *= 10;
+    else if (err <= .35) step *= 5;
+    else if (err <= .75) step *= 2;
+
+    // Round start and stop values to step interval.
+    let tstart = Math.ceil(min / step) * step,
+        tstop = Math.floor(max / step) * step + step * .5,
+        ticks = [];
+
+    // now generate ticks
+    for (let i = tstart; i < tstop; i += step) {
+        ticks.push(i);  
+    }
+
+    return ticks;
+  }
+
   // Debounce
-  function debounce(func, wait, immediate) {
+  function _debounce(func, wait, immediate) {
     var timeout;
     return function() {
         var context = this, args = arguments;
@@ -46,54 +132,16 @@
         if (callNow) func.apply(context, args);
     };
   }
-  // Utility for setting multiple attributes (NS specific for SVG)
-  // Borrowed and slightly modified from gomakethings.com
-  var setAttributesNS = function (elem, atts) {
-  	atts.forEach(function (attribute) {
-      attribute = Object.entries(attribute)[0];
-  		elem.setAttributeNS(null, attribute[0], attribute[1]);
-  	});
-  };
 
-  function createSVGElement(parent, nodeType, attributes, content) {
-    const svgns = "http://www.w3.org/2000/svg";
-    const element = document.createElementNS(svgns, nodeType);
-    setAttributesNS(element, attributes);
-    if(content) {element.textContent = content;}
-    parent.appendChild(element);
-    return element;
-  }
-
-  // nice scale utility
-  // source :  https://stackoverflow.com/a/8855530
-  function calculateTicks(min, max, tickCount) {
-    var span = max - min,
-        step = Math.pow(10, Math.floor(Math.log(span / tickCount) / Math.LN10)),
-        err = tickCount / span * step;
-
-    // Filter ticks to get closer to the desired count.
-    if (err <= .15) step *= 10;
-    else if (err <= .35) step *= 5;
-    else if (err <= .75) step *= 2;
-
-    // Round start and stop values to step interval.
-    var tstart = Math.ceil(min / step) * step,
-        tstop = Math.floor(max / step) * step + step * .5,
-        ticks = [];
-
-    // now generate ticks
-    for (let i = tstart; i < tstop; i += step) {
-        ticks.push(i);  
-    }
-
-    return ticks;
-  }
-
-  function _select (selector, parent) {
-    return (parent ? parent : document).querySelector(selector);
-  }
-
+  /** Class creating a graph.
+   * @class Graph
+   */
   class Graph {
+    /**
+     * @param {node} node - Graph wrapper node, with a [data-graph] attribute
+     * @param {object[]} datas - Array of datas as objects containing property and value
+     * @param {object} config - Object listing all the config options
+     */
     constructor(node, datas, config) {
       this.node = node;
       this.datas = datas;
@@ -120,7 +168,7 @@
     debug() {console.log(this);}
 
     
-    // Transforming each value to a percentage of the max one, for easier display
+    // Transforming each value to a portion of the max one, for easier display
     generateRelativePosition() {
       this.positions = [];
       this.values = [];
@@ -133,11 +181,11 @@
 
     // Append in the graph
     setPoints() {
-      this.positions.forEach((percentage, index) => {
+      this.positions.forEach((element, index) => {
         // point definition
         const position = {
           'x': this.config.startGraph + index * this.config.scaleX,
-          'y': this.config.offsetY + (this.config.scaleY - percentage)
+          'y': this.config.offsetY + (this.config.scaleY - element)
         };
 
         // display in a line
@@ -145,7 +193,7 @@
         this.svgLine.setAttributeNS(null, 'points', this.points);
 
         // append the circles
-        createSVGElement(this.svgDatasWrapper, 'circle', [
+        _createSVGElement(this.svgDatasWrapper, 'circle', [
           {'cx': position.x},
           {'cy': position.y},
           {'r': 4},
@@ -155,7 +203,7 @@
           {'data-value': this.values[index]},
         ]);
 
-        createSVGElement(this.svgLabelsX, 'text', [
+        _createSVGElement(this.svgLabelsX, 'text', [
           {'x': position.x},
           {'y': this.config.offsetY + this.config.scaleY + 20},
           {'transform': "rotate(-45, " + position.x + ", " + (this.config.offsetY + this.config.scaleY + 20) + ")"},
@@ -175,7 +223,7 @@
         // end graph position
         if (index = this.positions.length - 1) {
           this.config.endGraph = position.x;
-          setAttributesNS(this.svgLine, [
+          _setAttributesNS(this.svgLine, [
             {'stroke-dasharray': this.svgLine.getTotalLength()},
             {'stroke-dashoffset': this.svgLine.getTotalLength()},
             {'style': '--stroke-size: ' + this.svgLine.getTotalLength()},
@@ -187,21 +235,22 @@
 
     setLegend() {
 
-      createSVGElement(this.svgGridX, 'line', [
+      _createSVGElement(this.svgGridX, 'line', [
         {'x1': this.config.startGraph},
         {'x2': this.config.startGraph},
         {'y1': this.config.offsetY},
         {'y2': this.config.offsetY + (this.config.scaleY)},
       ]);
 
-      createSVGElement(this.svgLabelsX, 'text', [
+      _createSVGElement(this.svgLabelsX, 'text', [
         {'x': (this.config.endGraph / 2) + (this.config.startGraph / 2)},
         {'y': this.config.scaleY + this.config.labelsSizeX + this.config.offsetY / 2},
         {'class': 'label-title'},
       ], this.config.titleX);
 
       // Append Y label
-      let labelsYValues = calculateTicks(0, this.maxValue, 6);
+      let labelsYValues = _calculateTicks(0, this.maxValue, 6);
+      console.log(labelsYValues, this.maxValue);
 
       let labelsYPositions = [];
       labelsYValues.forEach(labelValue => {
@@ -213,12 +262,12 @@
         // point definition
         const positionY = position;
 
-        createSVGElement(this.svgLabelsY, 'text', [
+        _createSVGElement(this.svgLabelsY, 'text', [
           {'x': this.config.startGraph - 10},
           {'y': this.config.offsetY + (this.config.scaleY - positionY)},
         ], labelsYValues[index]);
         
-        createSVGElement(this.svgGridY, 'line', [
+        _createSVGElement(this.svgGridY, 'line', [
           {'x1': this.config.startGraph},
           {'x2': this.config.endGraph},
           {'y1': this.config.offsetY + (this.config.scaleY - positionY)},
@@ -226,7 +275,7 @@
         ]);
       });
 
-      createSVGElement(this.svgLabelsY, 'text', [
+      _createSVGElement(this.svgLabelsY, 'text', [
         {'x': this.config.startGraph - 10},
         {'y': this.config.offsetY / 2},
         {'class': 'label-title'},
@@ -237,7 +286,7 @@
     setGraphSize() {
       const graphWidth = this.config.endGraph + 10;
       const graphHeight = this.config.scaleY + this.config.labelsSizeX + this.config.offsetY;
-      setAttributesNS(this.svgGraphInner, [
+      _setAttributesNS(this.svgGraphInner, [
         {'viewBox': '0 0 ' + graphWidth + ' ' + graphHeight},
         {'width': graphWidth},
         {'height': graphHeight},
@@ -262,7 +311,7 @@
     }
 
     events() {
-      window.addEventListener("resize", debounce( this.draw(), 200 ));
+      window.addEventListener("resize", _debounce( this.draw(), 200 ));
       // Display the tooltips (with event delegation please)
       ['mouseenter','focus'].forEach( eventType => {
         this.svgGraphInner.addEventListener(eventType, event => {
@@ -346,7 +395,7 @@
   // TODO : Use proxies to update only the necessary parts when the data or the config change.
   const node = _select('[data-graph]');
   const table = _select('[data-graph-table]');
-  let [header, datas] = tableToJson(table);
+  let [header, datas] = _tableToJson(table);
 
   let config = {
     "mainTitle": "A very simple line chart about income",

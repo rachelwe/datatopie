@@ -1,12 +1,12 @@
-import { tableToJson } from "./helpers/tableToJson";
-import { _select } from "./helpers/utility";
+import { _tableToJson } from "./helpers/data";
+import { _select } from "./helpers/dom";
 import GraphLine from "./graph-line";
 
 
 // TODO : Use proxies to update only the necessary parts when the data or the config change.
 const node = _select('[data-graph]');
 const table = _select('[data-graph-table]');
-let [header, datas] = tableToJson(table)
+let [header, datas] = _tableToJson(table)
 
 let config = {
   "mainTitle": "A very simple line chart about income",

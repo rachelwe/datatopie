@@ -2,14 +2,14 @@
  * generate a header object and data array from an HTML table
  *
  * @param {node} table - an html table wrapper 
- * @return {array} The header object and data array in an array form
+ * @return {number[]} The header object and data array in an array form
  *
  * @example
  *
  *     let [header, datas] = tableToJson(tableNode)
  */
 
-export function tableToJson(table) { 
+export function _tableToJson(table) { 
   let header = {
     "x": table.rows[0].cells[0].innerHTML,
     "y": table.rows[0].cells[1].innerHTML

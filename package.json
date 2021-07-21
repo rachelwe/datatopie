@@ -14,7 +14,8 @@
     "watch:js": "onchange \"src/**/*.js\" -- run-s bundle uglify",
     "serve": "browser-sync start --server --files \"**/*.css, **/*.min.js, **/*.html, **/*.php\"",
     "dev": "run-p serve watch:*",
-    "build": "run-p build:*"
+    "build": "run-p build:*",
+    "docs": "jsdoc --readme README.md src/js/ -r --verbose --pedantic"
   },
   "keywords": [
     "data",
