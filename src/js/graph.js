@@ -2,9 +2,7 @@ import { _setAttributesNS, _createSVGElement, _select } from "./helpers/dom";
 import { _calculateTicks } from "./helpers/draw";
 import { _debounce } from "./helpers/function";
 
-/** Class creating a graph.
- * @class Graph
- */
+/** Class creating a graph. */
 class Graph {
   /**
    * @param {node} node - Graph wrapper node, with a [data-graph] attribute
@@ -33,11 +31,17 @@ class Graph {
     this.values = [];
     this.maxValue = 0;
   }
-  
-  debug() {console.log(this);}
 
-  
-  // Transforming each value to a portion of the max one, for easier display
+  /**
+   * Temporary debug
+   */  
+  debug() {
+    console.log(this);
+  }
+
+  /**
+   * Transforming each value to a portion of the max one, for easier display
+   */
   generateRelativePosition() {
     this.positions = [];
     this.values = []
@@ -48,7 +52,9 @@ class Graph {
     this.values.forEach(value => {this.positions.push(value / this.maxValue * this.config.scaleY)})
   }
 
-  // Append in the graph
+  /**
+   * Append in the graph
+   */
   setPoints() {
     this.positions.forEach((element, index) => {
       // point definition
@@ -103,6 +109,9 @@ class Graph {
     })
   }
 
+  /**
+   * Set the legend
+   */
   setLegend() {
 
     const lineX = _createSVGElement(this.svgGridX, 'line', [
@@ -153,6 +162,9 @@ class Graph {
     
   }
 
+  /**
+   * Define Graph size
+   */
   setGraphSize() {
     const graphWidth = this.config.endGraph + 10;
     const graphHeight = this.config.scaleY + this.config.labelsSizeX + this.config.offsetY;
@@ -165,8 +177,10 @@ class Graph {
   }
 
 
-  // manual responsivness
-  // TODO : add resize event listener
+  /**
+   * manual responsivness
+   * TODO: add resize event listener
+   */
   setBreakpoints() {
     if  (window.matchMedia(`(max-width: 400px)`).matches) {
       this.config.scaleX = 20;
@@ -180,6 +194,9 @@ class Graph {
     }
   }
 
+  /**
+   * Events
+   */
   events() {
     window.addEventListener("resize", _debounce( this.draw(), 200 ));
     // Display the tooltips (with event delegation please)
@@ -224,6 +241,9 @@ class Graph {
   // Function to draw the graph : reset previous values & generate new ones
   // it's meh, but working !
   // TODO: draw again only when size change.
+  /**
+   * Draw the graph
+   */
   draw() {
     this.points = 0;
     this.positions = [];

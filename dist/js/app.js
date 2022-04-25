@@ -133,9 +133,7 @@
     };
   }
 
-  /** Class creating a graph.
-   * @class Graph
-   */
+  /** Class creating a graph. */
   class Graph {
     /**
      * @param {node} node - Graph wrapper node, with a [data-graph] attribute
@@ -164,11 +162,17 @@
       this.values = [];
       this.maxValue = 0;
     }
-    
-    debug() {console.log(this);}
 
-    
-    // Transforming each value to a portion of the max one, for easier display
+    /**
+     * Temporary debug
+     */  
+    debug() {
+      console.log(this);
+    }
+
+    /**
+     * Transforming each value to a portion of the max one, for easier display
+     */
     generateRelativePosition() {
       this.positions = [];
       this.values = [];
@@ -179,7 +183,9 @@
       this.values.forEach(value => {this.positions.push(value / this.maxValue * this.config.scaleY);});
     }
 
-    // Append in the graph
+    /**
+     * Append in the graph
+     */
     setPoints() {
       this.positions.forEach((element, index) => {
         // point definition
@@ -233,6 +239,9 @@
       });
     }
 
+    /**
+     * Set the legend
+     */
     setLegend() {
 
       _createSVGElement(this.svgGridX, 'line', [
@@ -283,6 +292,9 @@
       
     }
 
+    /**
+     * Define Graph size
+     */
     setGraphSize() {
       const graphWidth = this.config.endGraph + 10;
       const graphHeight = this.config.scaleY + this.config.labelsSizeX + this.config.offsetY;
@@ -295,8 +307,10 @@
     }
 
 
-    // manual responsivness
-    // TODO : add resize event listener
+    /**
+     * manual responsivness
+     * TODO: add resize event listener
+     */
     setBreakpoints() {
       if  (window.matchMedia(`(max-width: 400px)`).matches) {
         this.config.scaleX = 20;
@@ -310,6 +324,9 @@
       }
     }
 
+    /**
+     * Events
+     */
     events() {
       window.addEventListener("resize", _debounce( this.draw(), 200 ));
       // Display the tooltips (with event delegation please)
@@ -354,6 +371,9 @@
     // Function to draw the graph : reset previous values & generate new ones
     // it's meh, but working !
     // TODO: draw again only when size change.
+    /**
+     * Draw the graph
+     */
     draw() {
       this.points = 0;
       this.positions = [];
