@@ -7,7 +7,6 @@
  * @param {string} attribute[1] - value of the attribute
  */
 export function _setAttributesNS (elem, atts) {
-  console.log(atts);
 	atts.forEach(function (attribute) {
     attribute = Object.entries(attribute)[0]
 		elem.setAttributeNS(null, attribute[0], attribute[1]);
@@ -32,7 +31,7 @@ export function _createSVGElement(parent, nodeType, attributes, content) {
   const svgns = "http://www.w3.org/2000/svg";
   const element = document.createElementNS(svgns, nodeType);
   _setAttributesNS(element, attributes);
-  if(content) {element.textContent = content;}
+  if(content) {element.innerHTML = content;}
   parent.appendChild(element);
   return element;
 }

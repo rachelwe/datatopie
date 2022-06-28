@@ -8,6 +8,7 @@ body {
 
 .graph {
   --graph-width: 100%;
+  overflow: visible;
   &_wrapper {
     position: relative;
     margin: 2rem auto;
@@ -47,25 +48,36 @@ body {
   }
   
   &_data {
+    --graph-color: #00808B;
+
+
     circle {
       cursor: pointer; // triggers tooltips
-      fill: #00808B;
+      fill: var(--graph-color);
       stroke-width: 15; // extend interactive area
       stroke: transparent;
       border-radius: 50%; // for the lucky ppl who use firefox
+
+      &[aria-labelledby*="visitors"] {
+        --graph-color: rgb(116, 214, 116);
+      }
       
       &:focus {
-        outline: 2px solid #00808B;
+        outline: 2px solid var(--graph-color);
       }
     }
     polyline {
       fill: none;
       stroke-width: 2; 
-      stroke: #00808B;
+      stroke: var(--graph-color);
       animation: drawLine 1s ease-out forwards;
+      transition: 0.2s;
+
+      &[aria-label="visitors"] {
+        --graph-color: rgb(116, 214, 116);
+      }
     }
   }
-  
   &_tooltip {
     display: none;
     position: absolute;
@@ -74,6 +86,10 @@ body {
     padding: .5rem calc(.5rem + 15px) .5rem .5rem;
     clip-path: polygon(calc(100% - 20px) 0%, 100% 50%, calc(100% - 20px) 100%, 0% 100%, 0% 0%);
     min-width: 5rem;
+    margin-left: calc(var(--translate-left) * 1px);
+    margin-top: calc(var(--translate-top) * 1px);
+    top: calc(var(--top) * 1px);
+    left: calc(var(--left) * 1px);
     
     p {
       margin: 0;

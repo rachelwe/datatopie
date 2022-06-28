@@ -4,11 +4,11 @@
   <meta charset="UTF-8">
   <title>Datatopie - Simple and lightweight vanillaJS charts</title>
   <link rel="stylesheet" href="./dist/css/style.css">
-  <script src="./dist/js/app.js" defer></script>
+  <script src="./dist/js/app.js"></script>
 
 </head>
 <body>
-<div class="graph_wrapper" data-graph>
+<!-- <div class="graph_wrapper" data-graph>
   <svg class="graph" aria-labelledby="title" data-toggle-state="true" data-toggle-name="graphique">
   </svg>
   <div class="graph_tooltips" data-tooltips ></div>
@@ -71,6 +71,59 @@
       </tr>
     </tbody>
   </table>
+</div> -->
+
+<div class="graph_wrapper" data-graph style="width:400px;height:200px;">
 </div>
+
+<script defer>
+  // TODO : Use proxies to update only the necessary parts when the data or the config change.
+// let [header, datas] = _tableToJson(table)
+
+const config = {
+  "mainTitle": "A very simple line chart about income",
+  "legendKey": "label",
+  "titleY": 'nombre',
+  "titleX": 'Date',
+  "wrapper": document.querySelector('[data-graph]')
+}
+
+const data = [
+  {
+    "label": "02/06/2022",
+    "visitors": 5,
+    "views": 26
+  },
+  {
+    "label": "03/06/2022",
+    "visitors": 150,
+    "views": 234
+  },
+  {
+    "label": "04/06/2022",
+    "visitors": 15,
+    "views": 34
+  },
+  {
+    "label": "05/06/2022",
+    "visitors": 0,
+    "views": 0
+  },
+  {
+    "label": "06/06/2022",
+    "visitors": 300,
+    "views": 345
+  }
+]
+
+// const graphline = new GraphLine(node, datas, config);
+// graphline.debug();
+// graphline.draw();
+// graphline.events();
+
+const graph = new GraphLine(data, config);
+graph.init();
+graph.debug();
+</script>
 </body>
 </html>

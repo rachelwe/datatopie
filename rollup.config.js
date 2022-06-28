@@ -3,7 +3,7 @@ export default {
 	output: [
 		{
 			file: 'dist/js/app.js',
-			format: 'iife'
+			format: 'es'
 		}
 	]
 };

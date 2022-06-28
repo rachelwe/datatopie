@@ -1,0 +1,27 @@
+[
+  {
+    "label": "02/06/2022",
+    "visitors": 5,
+    "views": 26
+  },
+  {
+    "label": "03/06/2022",
+    "visitors": 150,
+    "views": 234
+  },
+  {
+    "label": "04/06/2022",
+    "visitors": 15,
+    "views": 34
+  },
+  {
+    "label": "05/06/2022",
+    "visitors": 0,
+    "views": 0
+  },
+  {
+    "label": "06/06/2022",
+    "visitors": 300,
+    "views": 345
+  }
+]

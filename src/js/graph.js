@@ -1,35 +1,29 @@
-import { _setAttributesNS, _createSVGElement, _select } from "./helpers/dom";
+import { _createSVGElement, _select, _setAttributesNS } from "./helpers/dom";
 import { _calculateTicks } from "./helpers/draw";
-import { _debounce } from "./helpers/function";
 
 /** Class creating a graph. */
-class Graph {
+export default class Graph {
   /**
    * @param {node} node - Graph wrapper node, with a [data-graph] attribute
    * @param {object[]} datas - Array of datas as objects containing property and value
    * @param {object} config - Object listing all the config options
    */
-  constructor(node, datas, config) {
-    this.node = node;
+  constructor(datas, config) {
+    // Get the parameters
     this.datas = datas;
     this.config = config;
-    this.template = `<title id="title">${this.config.mainTitle}</title>`;
 
-    // Get the graph elements
-    this.svgGraph = node;
-    this.svgGraphInner = _select('svg', this.svgGraph);
-    this.tooltips = _select('[data-tooltips]', this.svgGraph);
-    this.toggle = _select('[data-graph-toggle]', this.svgGraph);
-    this.svgDatasWrapper;
-    this.svgLine;
-    this.svgLabelsX;
-    this.svgLabelsY;
-    this.svgGridX;
-    this.svgGridY;
-    this.points = "";
-    this.positions = [];
-    this.values = [];
-    this.maxValue = 0;
+    // set new variables
+    this.nodes = {}
+    this.dimentions = {}
+    this.legend = [];
+    this.values = {};
+    this.maxValue = {};
+    this.percentages = {};
+    this.scale = {
+      "x": 100,
+      "y": 80
+    };
   }
 
   /**
@@ -39,169 +33,300 @@ class Graph {
     console.log(this);
   }
 
+  makeTemplate() {
+    return `
+      <svg class="graph" aria-labelledby="title">
+        <title id="title">${this.config.mainTitle}</title>
+        <g class="graph_legend" data-legend>
+        </g>
+        <g class="graph_data" data-datas>
+        </g>
+      </svg>
+      <div class="graph_tooltips" data-tooltips></div>
+    `;
+  }
+
+  
+
+  /**
+   * Take the data array of objects, separate the header (defined in config.legendKey) & make arrays of data
+   */
+   _dataAsArrays() {
+    // Iterate data list
+    this.datas.forEach(data => {
+
+      // Turn object {key:value,...} into array of arrays [[key, value],...]
+      // => iterate
+      Object.entries(data).forEach(([entryKey, entryValues]) => {
+        // Separate the legent from the values, 
+        // push each one into its own array.
+        if(entryKey === this.config.legendKey) {
+          this.legend.push({
+            "label": entryValues,
+            "position": 0
+          });
+        } else {
+          this.values[entryKey] = this.values[entryKey] || [];
+          this.values[entryKey].push(entryValues);
+        }
+      })      
+    })
+  }
+
+  /**
+   * Get highest value from nested array
+   */
+  _getMaxValue() {
+    let allvalues = []
+    Object.entries(this.values).forEach(([groupKey, groupValues]) => {
+      allvalues.push(groupValues);
+    })
+    return Math.max(...[].concat(...allvalues));
+  }
+
   /**
    * Transforming each value to a portion of the max one, for easier display
    */
-  generateRelativePosition() {
-    this.positions = [];
-    this.values = []
-    // all the values in an array
-    this.datas.forEach(data => {this.values.push(data.y)});
+   _generateRelativePosition() {
+    this.percentages = {};
     // Max value inside the array
-    this.maxValue = Math.max(...this.values);
-    this.values.forEach(value => {this.positions.push(value / this.maxValue * this.config.scaleY)})
-  }
+    this.maxValue = this._getMaxValue();
+    Object.entries(this.values).forEach(([groupKey, groupValues]) => {
+      this.percentages[groupKey] = [];
 
-  /**
-   * Append in the graph
-   */
-  setPoints() {
-    this.positions.forEach((element, index) => {
-      // point definition
-      const position = {
-        'x': this.config.startGraph + index * this.config.scaleX,
-        'y': this.config.offsetY + (this.config.scaleY - element)
-      }
-
-      // display in a line
-      this.points += position.x + ', ' + position.y + ' ';
-      this.svgLine.setAttributeNS(null, 'points', this.points);
-
-      // append the circles
-      const circle = _createSVGElement(this.svgDatasWrapper, 'circle', [
-        {'cx': position.x},
-        {'cy': position.y},
-        {'r': 4},
-        {'tabindex': 0},
-        {'role': 'img'},
-        {'aria-labelledby': "graph_tooltip" + index},
-        {'data-value': this.values[index]},
-      ])
-
-      const labelX = _createSVGElement(this.svgLabelsX, 'text', [
-        {'x': position.x},
-        {'y': this.config.offsetY + this.config.scaleY + 20},
-        {'transform': "rotate(-45, " + position.x + ", " + (this.config.offsetY + this.config.scaleY + 20) + ")"},
-      ], this.datas[index].x)
-
-
-      const tooltipGroup = document.createElement('div');
-      tooltipGroup.setAttribute('style', `left: ${position.x - 15}px; top: ${position.y  - 65}px`);
-      tooltipGroup.setAttribute('class', "graph_tooltip");
-      tooltipGroup.setAttribute('id', "graph_tooltip" + index);
-      tooltipGroup.innerHTML = `
-        <p>${this.datas[index].x}</p>
-        <p>${this.datas[index].y} €</p>
-      `
-      this.tooltips.appendChild(tooltipGroup);
-
-      // end graph position
-      if (index = this.positions.length - 1) {
-        this.config.endGraph = position.x;
-        _setAttributesNS(this.svgLine, [
-          {'stroke-dasharray': this.svgLine.getTotalLength()},
-          {'stroke-dashoffset': this.svgLine.getTotalLength()},
-          {'style': '--stroke-size: ' + this.svgLine.getTotalLength()},
-        ])
-      };
-      
-      
+      groupValues.forEach(value => {
+        this.percentages[groupKey].push(value / this.maxValue * 100)
+      })
     })
   }
 
   /**
-   * Set the legend
+   * Transforming each value to it's percentage from total
+   * Mainly used in pie charts
    */
-  setLegend() {
+  _generateProportions() {
 
-    const lineX = _createSVGElement(this.svgGridX, 'line', [
-      {'x1': this.config.startGraph},
-      {'x2': this.config.startGraph},
-      {'y1': this.config.offsetY},
-      {'y2': this.config.offsetY + (this.config.scaleY)},
+  }
+
+  _setViewbox(value) {
+    this.nodes['svg'].setAttributeNS(null, 'viewBox', value);
+  }
+
+  _setEndGraph(value = 0) {
+    if (!this.dimentions.endGraph) this.dimentions.endGraph = value
+    this.dimentions.endGraph = parseFloat(this.dimentions.endGraph) < value ? value : this.dimentions.endGraph;
+    var bBox = this.nodes.svg.getBBox();
+    // this._setViewbox(`0 0 ${this.dimentions.endGraph} 102`); 
+    this._setViewbox(`0 0 ${bBox.width} ${bBox.height}`); 
+    _setAttributesNS(this.nodes.svg, [
+      {'width': bBox.width,
+      'height': bBox.height}
+    ]);
+  }
+
+  _setGridTranslate() {
+    const bbox = _select('[data-labels="y"]').getBBox();
+    const bboxDatas =  _select('[data-datas]').getBBox();
+    _setAttributesNS(this.nodes.datas, [
+      {'transform': `translate(${bbox.x * -1},10)`}
+    ]);
+    _setAttributesNS(this.nodes.legend, [
+      {'transform': `translate(${bbox.x * -1},10)`}
     ])
+    this.config.wrapper.style.setProperty("--translate-left", bbox.x * -1);
+    this.config.wrapper.style.setProperty("--translate-top", "10");
+    this.config.wrapper.style.setProperty("--datas-width", bboxDatas.width);
+    this.config.wrapper.style.setProperty("--datas-height", bboxDatas.height);
+    // TODO: move the tooltips accordingly
+  }
 
-    const labelXMaster = _createSVGElement(this.svgLabelsX, 'text', [
-      {'x': (this.config.endGraph / 2) + (this.config.startGraph / 2)},
-      {'y': this.config.scaleY + this.config.labelsSizeX + this.config.offsetY / 2},
+  _setPosition(element, index, group) {
+    // position definition
+    return {
+      'x': index * (this.scale.x / (group.length - 1)),
+      'y': this.scale.y - (this.scale.y / 100 * element)
+    }
+  }
+
+  _setLinePoint(position) {
+    // display in a line
+    return position.x + ', ' + position.y + ' ';
+  }
+
+  _setPoint(position, index, parentNode, group) {
+    // create a circle
+    return _createSVGElement(parentNode, 'circle', [
+      {'cx': position.x},
+      {'cy': position.y},
+      {'r': 4},
+      {'tabindex': 0},
+      {'role': 'img'},
+      {'aria-labelledby': "graph_tooltip_" + group + index},
+    ]);
+  }
+
+  _setTooltip(position, group, index) {
+    const tooltipGroup = document.createElement('div');
+    tooltipGroup.setAttribute('style', `--left: ${position.x}; --top: ${position.y}`);
+    tooltipGroup.setAttribute('class', "graph_tooltip");
+    tooltipGroup.setAttribute('id', "graph_tooltip_" + group + index);
+    tooltipGroup.innerHTML = `
+      <p>${this.legend[index].label}</p>
+      <p>${group} ${this.values[group][index]}</p>
+    `;
+    return tooltipGroup;
+  }
+
+  _setLabelX(element, index, group) {
+    const labelsWrapper = _select('[data-labels="x"]', this.nodes.svg);
+    return _createSVGElement(labelsWrapper, 'text', [
+      {'x': index * (this.scale.x / (group.length - 1))},
+      {'y': this.dimentions.datas.height},
+      {'transform': "rotate(-90, " + (index * (this.scale.x / (group.length - 1))) + ", " +  this.dimentions.datas.height + ")"},
+    ], element.label)
+  }
+
+  addLine() {
+    const svg = _select('[data-datas]',this.config.wrapper);
+    Object.entries(this.percentages).forEach(([groupKey, groupValues], groupIndex) => {
+      const Line = _createSVGElement(svg, 'polyline', [
+        {'x': 0},
+        {'y': 0},
+        {'data-line': ''},
+        {'aria-label': groupKey}
+      ])
+  
+      let linePoints = '';
+
+      groupValues.forEach((element, index) => {
+        const position = this._setPosition(element, index, groupValues)
+        linePoints += this._setLinePoint(position);
+        const circle = this._setPoint(position, index, svg, groupKey);       
+        this.nodes.tooltips.appendChild(this._setTooltip(position, groupKey, index));
+        this.legend[index].position = position.x;
+
+        if (index == groupValues.length - 1) {this._setEndGraph(position.x)}
+      });
+      
+      Line.setAttributeNS(null, 'points', linePoints);
+
+      _setAttributesNS(Line, [
+        {'stroke-dasharray': Line.getTotalLength()},
+        {'stroke-dashoffset': Line.getTotalLength()},
+        {'style': '--stroke-size: ' + Line.getTotalLength()},
+      ])
+    })
+  }
+  _setGridTemplate() {
+    const legendTemplate = `
+      <g class="graph_grid graph_grid--x" id="xGrid" data-grid="x"></g>
+      <g class="graph_grid graph_grid--y" id="yGrid" data-grid="y"></g>
+      <g class="graph_labels graph_labels--x" data-labels="x"></g>
+      <g class="graph_labels graph_labels--y" data-labels="y"></g>
+    `;
+
+    this.nodes.legend.innerHTML = legendTemplate;
+  }
+  _setDimentions() {
+    const wrapperBBox = this.config.wrapper.getBoundingClientRect();
+    const svgBBox = this.nodes.svg.getBBox();
+    const datasBBox = this.nodes.datas.getBBox();
+    const labelsYBBox = _select('[data-labels="y"]', this.nodes.svg).getBBox();
+    const labelsXBBox = _select('[data-labels="x"]', this.nodes.svg).getBBox();
+
+    this.dimentions = {
+      "wrapper": wrapperBBox,
+      "graph" : svgBBox,
+      "datas" : datasBBox,
+      "labelsY" : labelsYBBox,
+      "labelsX" : labelsXBBox,
+    }
+  }
+  _setLegendY() {
+    let labelsYValues = _calculateTicks(0, this.maxValue, 6);
+
+    labelsYValues.forEach((label, index) => {
+      // point definition
+
+      const labelY = _createSVGElement(_select('[data-labels="y"]', this.nodes.svg), 'text', [
+        {'x': -10},
+        {'y': 0},
+        {'data-update': index}
+      ], label);
+    })
+
+    const labelYMaster = _createSVGElement(_select('[data-labels="y"]', this.nodes.svg), 'text', [
+      {'x': -10},
+      {'y': 0},
+      {'class': 'label-title'},
+    ], this.config.titleY);
+
+    this._setDimentions();
+    this.scale.x = this.dimentions.wrapper.width + this.dimentions.labelsY.x
+
+    return labelsYValues;
+  }
+  _setLegendX() {
+    this.legend.forEach((label, index) => {
+      this._setLabelX(label, index, this.legend);
+    })
+
+    const labelXMaster = _createSVGElement(_select('[data-labels="x"]', this.nodes.svg), 'text', [
+      {'x': (this.scale.x / 2)},
+      {'y': this.dimentions.datas.height + _select('[data-labels="x"]').getBBox().height + 20},
       {'class': 'label-title'},
     ], this.config.titleX)
 
-    // Append Y label
-    let labelsYValues = _calculateTicks(0, this.maxValue, 6);
-    console.log(labelsYValues, this.maxValue);
+    this._setDimentions();
+    this.scale.y = this.dimentions.wrapper.height - this.dimentions.labelsX.height - 10;
+    
+    const lineX = _createSVGElement(_select('[data-grid="x"]', this.nodes.svg), 'line', [
+      {'x1': 0},
+      {'x2': 0},
+      {'y1': 0},
+      {'y2': this.scale.y},
+    ]);
+
+    _setAttributesNS(_select('[data-labels="x"]'), [
+      {'transform': `translate(0,${this.scale.y + 10})`}
+    ])
+  }
+  addGrid() {
+    const legendY = this._setLegendY();
+    this._setLegendX();
 
     let labelsYPositions = [];
-    labelsYValues.forEach(labelValue => {
-      labelsYPositions.push(labelValue / this.maxValue * this.config.scaleY)
+    legendY.forEach(labelValue => {
+      labelsYPositions.push(labelValue / this.maxValue * this.scale.y)
     })
-
 
     labelsYPositions.forEach((position, index) => {
       // point definition
       const positionY = position;
+      const Ywrapper = _select('[data-labels="y"]');
 
-      const labelY = _createSVGElement(this.svgLabelsY, 'text', [
-        {'x': this.config.startGraph - 10},
-        {'y': this.config.offsetY + (this.config.scaleY - positionY)},
-      ], labelsYValues[index]);
+      _setAttributesNS(_select(`[data-update="${index}"]`, Ywrapper), [
+        {'y': 0 + (this.scale.y - positionY)}
+      ]);
       
-      const lineY = _createSVGElement(this.svgGridY, 'line', [
-        {'x1': this.config.startGraph},
-        {'x2': this.config.endGraph},
-        {'y1': this.config.offsetY + (this.config.scaleY - positionY)},
-        {'y2': this.config.offsetY + (this.config.scaleY - positionY)},
+      const lineY = _createSVGElement(_select('[data-grid="y"]', this.nodes.svg), 'line', [
+        {'x1': 0},
+        {'x2': this.scale.x},
+        {'y1': 0 + (this.scale.y - positionY)},
+        {'y2': 0 + (this.scale.y - positionY)},
       ])
     })
-
-    const labelYMaster = _createSVGElement(this.svgLabelsY, 'text', [
-      {'x': this.config.startGraph - 10},
-      {'y': this.config.offsetY / 2},
-      {'class': 'label-title'},
-    ], this.config.titleY);
     
+    this._setEndGraph();
   }
+  addPie() {}
+  addColumns() {}
+  updateLine() {}
+  updateGrid() {}
 
-  /**
-   * Define Graph size
-   */
-  setGraphSize() {
-    const graphWidth = this.config.endGraph + 10;
-    const graphHeight = this.config.scaleY + this.config.labelsSizeX + this.config.offsetY;
-    _setAttributesNS(this.svgGraphInner, [
-      {'viewBox': '0 0 ' + graphWidth + ' ' + graphHeight},
-      {'width': graphWidth},
-      {'height': graphHeight},
-    ]);
-    this.svgGraph.style.setProperty('--graph-width', graphWidth + 'px');
-  }
-
-
-  /**
-   * manual responsivness
-   * TODO: add resize event listener
-   */
-  setBreakpoints() {
-    if  (window.matchMedia(`(max-width: 400px)`).matches) {
-      this.config.scaleX = 20;
-      this.config.scaleY = 60;
-    } else if (window.matchMedia(`(max-width: 700px) and (min-width: 401px)`).matches) {
-      this.config.scaleX = 35;
-      this.config.scaleY = 100;
-    } else {
-      this.config.scaleX = 50;
-      this.config.scaleY = 150;
-    }
-  }
-
-  /**
-   * Events
-   */
-  events() {
-    window.addEventListener("resize", _debounce( this.draw(), 200 ));
-    // Display the tooltips (with event delegation please)
+  _events() {
     ['mouseenter','focus'].forEach( eventType => {
-      this.svgGraphInner.addEventListener(eventType, event => {
+      this.nodes.svg.addEventListener(eventType, event => {
         if (eventType == 'focus') event.target.classList.add('is-focused')
         if (event.target.matches('circle')) {
           const id = event.target.getAttribute('aria-labelledby');
@@ -212,7 +337,7 @@ class Graph {
     });
       
     ['mouseleave','blur'].forEach( eventType => {
-      this.svgGraphInner.addEventListener(eventType, event => {
+      this.nodes.svg.addEventListener(eventType, event => {
         if (eventType == 'blur') event.target.classList.remove('is-focused')
         if (event.target.matches('circle')) {
           const id = event.target.getAttribute('aria-labelledby');
@@ -223,48 +348,23 @@ class Graph {
         }
       }, true)
     });
-
-
-    this.toggle.addEventListener("click", () => {
-      const togglable = document.querySelectorAll('[data-toggle-state]');
-      togglable.forEach( element => {
-        const state = element.getAttribute('data-toggle-state');
-        let toggleName = element.getAttribute('data-toggle-name');
-        if (state == 'true') {this.toggle.innerHTML = "affichage " + toggleName;}
-        element.setAttribute('data-toggle-state', state == 'true' ? false : true)
-      })
-    })
   }
 
-
-  // Make it responsive on resize WIP
-  // Function to draw the graph : reset previous values & generate new ones
-  // it's meh, but working !
-  // TODO: draw again only when size change.
-  /**
-   * Draw the graph
-   */
-  draw() {
-    this.points = 0;
-    this.positions = [];
-    this.svgGraphInner.innerHTML = this.template;
-    this.tooltips.innerHTML = '';
-    this.svgDatasWrapper = _select('[data-datas]', this.svgGraph);
-    this.svgLine = _select('[data-line]', this.svgGraph);
-    this.svgLabelsX = _select('[data-labels="x"]', this.svgGraph);
-    this.svgLabelsY = _select('[data-labels="y"]', this.svgGraph);
-    this.svgGridX = _select('[data-grid="x"]', this.svgGraph);
-    this.svgGridY = _select('[data-grid="y"]', this.svgGraph);
-
-    this.setBreakpoints();
-    this.generateRelativePosition();
-    this.setPoints()
-    this.setLegend()
-    this.setGraphSize()
+  init() {
+    this.config.wrapper.innerHTML = this.makeTemplate();
+    this.nodes['svg'] = _select('svg', this.config.wrapper);
+    this.nodes['legend'] = _select('[data-legend]', this.config.wrapper);
+    this.nodes['datas'] = _select('[data-datas]', this.config.wrapper);
+    this.nodes['tooltips'] = _select('[data-tooltips]', this.config.wrapper);
+    this._setEndGraph();
+    this._dataAsArrays();
+    this._generateRelativePosition();
+    this._setGridTemplate();
+    this._setDimentions();
+    this.addGrid();
+    this._setDimentions();
+    this.addLine();
+    this._setGridTranslate();
+    this._events();
   }
-
-
 }
-
-
-export default Graph

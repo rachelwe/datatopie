@@ -24,6 +24,6 @@ export function _tableToJson(table) {
     }
     datas.push(rowData);
   }
-
+  console.log([header, datas]);
   return [header, datas];
 }
