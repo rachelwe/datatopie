@@ -7,7 +7,7 @@
     "scss": "sass --style=compressed --no-source-map --update src/scss:dist/css",
     "autoprefixer": "postcss --no-map -u autoprefixer --r dist/css/*",
     "bundle": "rollup --config",
-    "uglify": "terser dist/js/app.js -m -o dist/js/app.min.js",
+    "uglify": "terser dist/js/app.js -m -o dist/js/app.min.js && terser dist/js/graph-pie.js -m -o dist/js/graph-pie.min.js ",
     "build:css": "run-s scss autoprefixer",
     "build:js": "run-s bundle uglify",
     "watch:css": "onchange \"src/**/*.scss\" -- run-s scss",

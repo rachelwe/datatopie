@@ -33,3 +33,8 @@ export function _calculateTicks(min, max, tickCount) {
 
   return ticks;
 }
+
+
+export function easeOutExpo(x) {
+  return x === 1 ? 1 : 1 - Math.pow(2, -10 * x)
+}

@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <title>Datatopie - Simple and lightweight vanillaJS charts</title>
   <link rel="stylesheet" href="./dist/css/style.css">
-  <script src="./dist/js/app.js"></script>
 
 </head>
 <body>
@@ -73,57 +72,66 @@
   </table>
 </div> -->
 
-<div class="graph_wrapper" data-graph style="width:400px;height:200px;">
+<div class="graph_wrapper" data-graph="line" style="width:400px;height:200px;">
 </div>
 
+<div class="graph_wrapper" data-graph="pie" style="width:400px;">
+</div>
+<!-- TODO : progressbar légendes en dessous avec bouton pour masquer
+     TODO : bouton de réglage - export, ajout de motifs ?
+     TODO : Animation -->
+
+<pie-chart id="demo" data="40;30;30;20;10;10" gap="0.06" donut="0.2" labels="Jaune;Vert;Orange;Bleu;Rouge;Bleu clair"></pie-chart>
+
+<script src="./dist/js/app.js"></script>
 <script defer>
   // TODO : Use proxies to update only the necessary parts when the data or the config change.
 // let [header, datas] = _tableToJson(table)
 
-const config = {
-  "mainTitle": "A very simple line chart about income",
-  "legendKey": "label",
-  "titleY": 'nombre',
-  "titleX": 'Date',
-  "wrapper": document.querySelector('[data-graph]')
+const lineChart = {
+  "config": {
+    "mainTitle": "A very simple line chart about income",
+    "legendKey": "label",
+    "titleY": 'nombre',
+    "titleX": 'Date',
+    "wrapper": document.querySelector('[data-graph="line"]')
+  },
+  "data": [
+    {
+      "label": "02/06/2022",
+      "visitors": 5,
+      "views": 26
+    },
+    {
+      "label": "03/06/2022",
+      "visitors": 150,
+      "views": 234
+    },
+    {
+      "label": "04/06/2022",
+      "visitors": 15,
+      "views": 34
+    },
+    {
+      "label": "05/06/2022",
+      "visitors": 0,
+      "views": 0
+    },
+    {
+      "label": "06/06/2022",
+      "visitors": 300,
+      "views": 345
+    }
+  ]
 }
 
-const data = [
-  {
-    "label": "02/06/2022",
-    "visitors": 5,
-    "views": 26
-  },
-  {
-    "label": "03/06/2022",
-    "visitors": 150,
-    "views": 234
-  },
-  {
-    "label": "04/06/2022",
-    "visitors": 15,
-    "views": 34
-  },
-  {
-    "label": "05/06/2022",
-    "visitors": 0,
-    "views": 0
-  },
-  {
-    "label": "06/06/2022",
-    "visitors": 300,
-    "views": 345
-  }
-]
 
-// const graphline = new GraphLine(node, datas, config);
-// graphline.debug();
-// graphline.draw();
-// graphline.events();
 
-const graph = new GraphLine(data, config);
-graph.init();
-graph.debug();
+const graphLine = new GraphLine(lineChart.data, lineChart.config);
+graphLine.init();
+graphLine.debug();
+
+
 </script>
 </body>
 </html>
