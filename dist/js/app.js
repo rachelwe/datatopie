@@ -1,4 +1,49 @@
 /**
+ * generate a header object and data array from an HTML table
+ *
+ * @param {node} table - an html table wrapper 
+ * @return {number[]} The header object and data array in an array form
+ *
+ * @example
+ *
+ *     let [header, datas] = tableToJson(tableNode)
+ */
+
+/**
+ * Get the sum/total from a specific key in an object
+ * @param {Object} object 
+ * @param {String} key 
+ * @returns {Float}
+ */
+function getTotalFromObjectKey(object, key) {
+  return object.reduce((acc, v) => acc + v[key], 0);
+}
+
+/**
+ * Get the Percentage from the sum/total of a specific key in an object.
+ * Useful to display pie or donut chart for example.
+ * @param {Object} object 
+ * @param {String} key 
+ * @param {Float} total
+ * @returns {Float}
+ */
+function getPercentageFromTotalOfObjectKey(object, key, total) {
+  const percentageArray = [];
+  object.map((data, index) => {
+    percentageArray[index] = data[key] / total * 100;
+  });
+  return percentageArray;
+}
+
+// Add space between zeros & cut to two decimals (if necessary)
+function applyPrettyNumber(number, decimals = 2) {
+  if (!number || Number.isNaN(number)) return 0;
+  let parts = parseFloat(number.toFixed(decimals)).toString().split(".");
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  return parts.join(".");
+}
+
+/**
  * Renvoie un élément HTML depuis une chaine
  * return an html element that can be queried befor added to the DOM
  * easier to work with & more performant
@@ -131,7 +176,7 @@ function _calculateTicks(min, max, tickCount) {
 }
 
 
-function easeOutExpo$1(x) {
+function easeOutExpo(x) {
   return x === 1 ? 1 : 1 - Math.pow(2, -10 * x)
 }
 
@@ -510,198 +555,6 @@ class GraphLine extends Graph {
 }
 
 /**
- * Renvoie un élément HTML depuis une chaine
- * @param {string} str 
- * @returns {HTMLElement}
- */
- function strToDom(str) {
-  return document.createRange().createContextualFragment(str).firstChild;
-}
-
-function easeOutExpo(x) {
-  return x === 1 ? 1 : 1 - Math.pow(2, -10 * x)
-}
-
-/**
-* Représente un point
-* @property {number} x
-* @property {number} y
-*/
-class Point$1 {
-  constructor (x, y) {
-      this.x = x; 
-      this.y = y; 
-  }
-
-  toSvgPath () {
-      return `${this.x} ${this.y}`
-  }
-
-  static fromAngle (angle) {
-      return new Point$1(Math.cos(angle), Math.sin(angle))
-  }
-}
-
-/**
-* @property {number[]} data
-* @property {SVGPathElement[]} paths
-* @property {SVGLineElement[]} lines
-* @property {HTMLDivElement[]} labels
-*/
-class PieChart extends HTMLElement {
-
-  constructor() {
-      super();
-      const shadow = this.attachShadow({mode: 'open'});
-
-      // On prépare les paramètres
-      const labels = this.getAttribute('labels')?.split(';') ?? [];
-      const donut = this.getAttribute('donut') ?? '0.005';
-      const colors = this.getAttribute('colors')?.split(';') ??  ['#FAAA32', '#3EFA7D', '#FA6A25', '#0C94FA', '#FA1F19', '#0CFAE2', '#AB6D23'];
-      this.data = this.getAttribute('data').split(';').map(v => parseFloat(v));
-      const gap = this.getAttribute('gap') ?? '0.015';
-
-      // On génère la structure du DOM nécessaire pour la suite
-      const svg = strToDom(`<svg viewBox="-1 -1 2 2">
-          <g mask="url(#graphMask)"></g>
-          <mask id="graphMask">
-              <rect fill="white" x="-1" y="-1" width="2" height="2"/>
-              <circle r="${donut}" fill="black"/>
-          </mask>
-      </svg>`);
-      const pathGroup = svg.querySelector('g');
-      const maskGroup = svg.querySelector('mask');
-      this.paths = this.data.map((_, k) => {
-          const color = colors[k % (colors.length - 1)];
-          const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-          path.setAttribute('fill', color);
-          pathGroup.appendChild(path);
-          path.addEventListener('mouseover', () => this.handlePathHover(k));
-          path.addEventListener('mouseout', () => this.handlePathOut(k));
-          return path
-      });
-      this.lines = this.data.map(() => {
-          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-          line.setAttribute('stroke', '#000');
-          line.setAttribute('stroke-width', gap);
-          line.setAttribute('x1', '0');
-          line.setAttribute('y1', '0');
-          maskGroup.appendChild(line);
-          return line
-      });
-      this.labels = labels.map((label) => {
-          const div = document.createElement('div');
-          div.innerText = label;
-          shadow.appendChild(div);
-          return div
-      });
-      const style = document.createElement('style');
-      style.innerHTML = `
-          :host {
-              display: block;
-              position: relative;
-          }
-          svg {
-              width: 100%;
-              height: 100%;
-          }
-          path {
-              cursor: pointer;
-              transition: opacity .3s;
-          }
-          path:hover {
-              opacity: 0.5;
-          }
-          div {
-              position: absolute;
-              top: 0;
-              left: 0;
-              font-size: 0.8rem;
-              padding: .1em .2em;
-              transform: translate(-50%, -50%);
-              background-color: var(--tooltip-bg, #FFF);
-              opacity: 0;
-              transition: opacity .3s;
-          }
-          .is-active {
-              opacity: 1;
-          }
-      `;
-      shadow.appendChild(style);
-      shadow.appendChild(svg);
-  }
-
-  connectedCallback () {
-      const now = Date.now();
-      const duration = 1000;
-      const draw = () => {
-          const t = (Date.now() - now) / duration;
-          if (t < 1) {
-              this.draw(easeOutExpo(t));
-              window.requestAnimationFrame(draw);
-          } else {
-              this.draw(1);
-          }
-      };
-      window.requestAnimationFrame(draw);
-  }
-
-  /**
-   * Dessine le graphique
-   * @param {number} progress 
-   */
-  draw (progress = 1) {
-      const total = this.data.reduce((acc, v) => acc + v, 0);
-      let angle = Math.PI / -2;
-      let start = new Point$1(0, -1);
-      for (let k = 0; k < this.data.length; k++) {
-          this.lines[k].setAttribute('x2', start.x);
-          this.lines[k].setAttribute('y2', start.y);
-          const ratio = (this.data[k] / total) * progress;
-          if (progress === 1) {
-              this.positionLabel(this.labels[k], angle + ratio * Math.PI);
-          }
-          angle += ratio * 2 * Math.PI;
-          const end = Point$1.fromAngle(angle);
-          const largeFlag = ratio > .5 ? '1' : '0';
-          this.paths[k].setAttribute('d', `M 0 0 L ${start.toSvgPath()} A 1 1 0 ${largeFlag} 1 ${end.toSvgPath()} L 0 0`);
-          start = end;
-      }
-  }
-
-  /**
-   * Gère l'effet lorsque l'on survol une section du graph
-   * @param {number} k Index de l'élément survolé
-   */
-  handlePathHover (k) {
-      this.dispatchEvent(new CustomEvent('sectionhover', {detail: k}));
-      this.labels[k]?.classList.add('is-active');
-  }
-
-  /**
-   * Gère l'effet lorsque l'on quitte la section du graph
-   * @param {number} k Index de l'élément survolé
-   */
-  handlePathOut (k) {
-      this.labels[k]?.classList.remove('is-active');
-  }
-
-  /**
-   * Positionne le label en fonction de l'angle
-   * @param {HTMLDivElement|undefined} label 
-   * @param {number} angle 
-   */
-  positionLabel (label, angle) {
-      if (!label || !angle) {
-          return;
-      }
-      const point = Point$1.fromAngle(angle);
-      label.style.setProperty('top', `${(point.y * 0.5 + 0.5) * 100}%`);
-      label.style.setProperty('left', `${(point.x * 0.5 + 0.5) * 100}%`);
-  }
-}
-
-/**
  * A module to generate a pie or donut chart
  * @author Rachel Pellin <pellin.rachel@gmail.com>
  * @license MIT License Copyright (c) 2022 Rachel Pellin
@@ -721,6 +574,10 @@ class Point {
 
   toSvgPath () {
       return `${this.x} ${this.y}`
+  }
+
+  toArray () {
+    return [this.x, this.y];
   }
 
   static fromAngle (angle) {
@@ -749,6 +606,7 @@ class GraphPie {
     this.nodes = {};
     this.paths = {};
     this.tooltips = {};
+    this.output = {};
   }
 
   /**
@@ -771,8 +629,8 @@ class GraphPie {
           <g class="graph_data" data-datas data-hide="" mask="url(#graphMask)">
           </g>
           <mask id="graphMask">
-              <rect fill="white" x="-1" y="-1" width="2" height="2"/>
-              <circle r="${this.config.donut || .5}" fill="black"/>
+              <rect fill="white" x="-2" y="-2" width="4" height="4"/>
+              <circle r="${this.config.donut || 0}" fill="black"/>
           </mask>
         </svg>
         <div class="graph_tooltips" data-tooltips></div>
@@ -811,34 +669,55 @@ class GraphPie {
         {'class': "graph_tooltip"},
         {'data-value': data.value},
         {'data-color': data.color},
+        {'style': '--data-color:' + data.color},
         {'id': this.config.id + '-tooltip-' + index}
       ], `<p>${data.label}</p>
-      <p>${data.value}</p>
+      <p>${applyPrettyNumber(data.value, this.config.decimals || 2)}&nbsp;${this.config.unite} &ndash; ${applyPrettyNumber(this.output.percentages[index], this.config.decimals || 2)}&nbsp;%</p>
     `);
     });
   }
 
   /**
-   * Private function to create the diferent paths tags
-   * store the nodes created in this.path object for later use
+   * Private function to create the different legends
+   * store the nodes created in this.legend object for later use
+   * can be overwritten by this.config.legend properties
    */
    _setLegend() {
-    const total = this.datas.reduce((acc, v) => acc + v.value, 0);
+    this.config.legend = this.config.legend || {};
+    const elementAttributes = (data, index) => {return this.config.legend.attributes 
+          ? this.config.legend.attributes(data, index) 
+          : [
+              {'class': "graph_legend"},
+              {'data-value': data.value},
+              {'style': '--data-color:' + data.color + ';--data-percentage:' + this.output.percentages[index]},
+              {'data-index': index},
+              {'data-display': true},
+              {'id': this.config.id + '-legend-' + index}
+            ];};
+    const elementContent = (data, index) => {return this.config.legend.content 
+          ? this.config.legend.content(data, index) 
+          : ` <div class="graph_legend_label">
+                <p>${data.label}</p>
+                <p id="${this.config.id + '-legend-meter-' + index}">${applyPrettyNumber(data.value, this.config.decimals || 2)}&nbsp;${this.config.unite} &ndash; ${applyPrettyNumber(this.output.percentages[index], this.config.decimals || 2)}&nbsp;%</p>
+              </div>
+              <div class="meter" role="meter" aria-valuenow="${data.value}" aria-valuemin="0" aria-valuemax="${this.output.total}" aria-labelledby="${this.config.id + '-legend-meter-' + index}"></div>
+              <button data-toggle>${this.config.legend.hideButton}</button>`;};
+    this.config.legend.hideButton = this.config.legend.hideButton 
+          ? this.config.legend.hideButton 
+          : "cacher";
+    // We are not using the native meter element because custom styling is not supported in chrome
     this.legend = this.datas.map((data, index) => {
-      return _createHTMLElement(this.nodes.legend, 'div', [
-        {'class': "graph_legend"},
-        {'data-value': data.value},
-        {'style': '--data-color:' + data.color + ';--data-percentage:' + (data.value / total * 100)},
-        {'data-index': index},
-        {'data-display': true},
-        {'id': this.config.id + '-legend-' + index}
-      ], `<div class="graph_legend_label"><p>${data.label}</p>
-        <p id="${this.config.id + '-legend-meter-' + index}">${data.value}&nbsp;${this.config.unite}</p></div>
-      <!-- <meter min="0" max="${total}" value="${data.value}">${data.value} ${data.label}</meter> -->
-      <div class="meter" role="meter" aria-valuenow="${data.value}" aria-valuemin="0" aria-valuemax="${total}" aria-labelledby="${this.config.id + '-legend-meter-' + index}"></div>
-      <button data-toggle>${this.config.hideButton}</button>
-    `);
+      const appliedAttributes = elementAttributes(data, index);
+      console.log(appliedAttributes);
+      return _createHTMLElement(this.nodes.legend, 'div', elementAttributes(data, index), elementContent(data, index));
     });
+  }
+
+  _getDataGap(newData, oldData) {
+    const gap = newData.map((data, index) => {
+      return data.value - oldData[index].value;
+    });
+    return gap;
   }
 
   /**
@@ -860,20 +739,48 @@ class GraphPie {
    * @param {object} datas 
    */
   draw (datas = this.datas, progress = 1) {
-    const total = datas.reduce((acc, v) => acc + v.value, 0);
     let angle = Math.PI / -2;
     let start = new Point(0, -1);
-    for (let k = 0; k < datas.length; k++) {
-        const ratio = (datas[k].value / total) * progress;
-        if (progress === 1) {
-            this._positionLabel(this.tooltips[k], angle + ratio * Math.PI);
-        }
-        angle += ratio * 2 * Math.PI;
-        const end = Point.fromAngle(angle);
-        const largeFlag = ratio > .5 ? '1' : '0';
-        this.paths[k].setAttribute('d', `M 0 0 L ${start.toSvgPath()} A 1 1 0 ${largeFlag} 1 ${end.toSvgPath()} L 0 0`);
-        start = end;
-    }
+    datas.forEach((data, index) => {
+      const ratio = (data.value / getTotalFromObjectKey(datas, 'value')) * progress;
+      if (progress === 1) {
+          this._positionLabel(this.tooltips[index], angle + ratio * Math.PI);
+      }
+
+      // TODO: best way to animate : interpolate values, not paths
+      angle += ratio * 2 * Math.PI;
+      const end = Point.fromAngle(angle);
+      const largeFlag = ratio > .5 ? '1' : '0';
+      this.paths[index].setAttribute('d', `M 0 0 L ${start.toSvgPath()} A 1 1 0 ${largeFlag} 1 ${end.toSvgPath()} L 0 0`);
+      start = end;
+    });
+    this.displayedDatas = [...datas];
+  }
+
+  update (newData, oldData = this.displayedDatas) {
+    let duration = 10;
+
+    const dataGap = this._getDataGap(newData, oldData);
+    const dataIncrement = dataGap.map((data, index) => {
+      return data / duration;
+    });
+    let animatedData = [...oldData];
+
+    const launchDraw = () => {
+      duration += -1;
+      if (duration > 1) {
+        this.draw(animatedData, 1);
+        animatedData = animatedData.map((data, index) => {
+          const temp = {...data};
+          temp.value = data.value + dataIncrement[index];
+          return temp
+        });
+        window.requestAnimationFrame(launchDraw);
+      } else {
+        this.draw(newData, 1);
+      }
+    };
+    window.requestAnimationFrame(launchDraw);
   }
 
   animate (datas = this.datas) {
@@ -882,7 +789,7 @@ class GraphPie {
     const launchDraw = () => {
         const t = (Date.now() - now) / duration;
         if (t < 1) {
-            this.draw(datas, easeOutExpo$1(t));
+            this.draw(datas, easeOutExpo(t));
             window.requestAnimationFrame(launchDraw);
         } else {
             this.draw(datas, 1);
@@ -910,12 +817,12 @@ class GraphPie {
       delete dataIndex.display;
     }
 
-    const displayedData = this.datas.map((data, index) => {
+    const updatedData = this.datas.map((data, index) => {
       const newData = {...data};
       if (newData.display === false) {newData.value = 0;}
       return newData;
     });
-    this.draw(displayedData);
+    this.update(updatedData);
   }
 
   _events() {
@@ -951,6 +858,8 @@ class GraphPie {
   }
 
   init() {
+    this.output.total = getTotalFromObjectKey(this.datas, 'value');
+    this.output.percentages = getPercentageFromTotalOfObjectKey(this.datas, 'value', this.output.total);
     this._setTemplate();
     this._setPaths();
     this._setTooltips();
@@ -963,8 +872,10 @@ class GraphPie {
 }
 
 // TODO: switch all class selectors for data-attributes & document a naming system.
+// TODO: implement hooks with default for tooltips, legends etc.
+// TODO: better way to define css variables
+// TODO: make it exportable (call the css inside the svg ?)
 
-customElements.define('pie-chart', PieChart);
 new GraphLine({}, {});
 
 const pieChart = {
@@ -973,9 +884,12 @@ const pieChart = {
     "legendKey": "label",
     "wrapper": document.querySelector('[data-graph="pie"]'),
     "id": Date.now(),
-    "donut": .8,
+    "donut": 0.8,
     "unite": "parts",
-    "hideButton": '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M2.1 12a18.7 18.7 0 0 0 2.5 3.3A10 10 0 0 0 12 19c3.1 0 5.6-1.8 7.4-3.7a18.7 18.7 0 0 0 2.5-3.3 18.7 18.7 0 0 0-2.5-3.3A10 10 0 0 0 12 5C8.9 5 6.4 6.8 4.6 8.7A18.7 18.7 0 0 0 2.1 12zM23 12l.9-.4a10.6 10.6 0 0 0-.2-.4 20.7 20.7 0 0 0-2.8-3.9c-2-2-5-4.3-8.9-4.3-3.9 0-6.9 2.2-8.9 4.3a20.7 20.7 0 0 0-2.8 3.9 12.4 12.4 0 0 0-.2.3s0 0 .9.5l-.9-.4a1 1 0 0 0 0 .8L1 12l-.9.4a8.3 8.3 0 0 0 .2.4 20.7 20.7 0 0 0 2.8 3.9c2 2 5 4.3 8.9 4.3 3.9 0 6.9-2.2 8.9-4.3a20.7 20.7 0 0 0 2.8-3.9 11.8 11.8 0 0 0 .2-.3s0 0-.9-.5zm0 0 .9.4a1 1 0 0 0 0-.8l-.9.4z" clip-rule="evenodd"/><path fill-rule="evenodd" d="M12 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-4 2a4 4 0 1 1 8 0 4 4 0 0 1-8 0z" clip-rule="evenodd"/></svg>'
+    "legend" : {
+      "hideButton": '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M2.1 12a18.7 18.7 0 0 0 2.5 3.3A10 10 0 0 0 12 19c3.1 0 5.6-1.8 7.4-3.7a18.7 18.7 0 0 0 2.5-3.3 18.7 18.7 0 0 0-2.5-3.3A10 10 0 0 0 12 5C8.9 5 6.4 6.8 4.6 8.7A18.7 18.7 0 0 0 2.1 12zM23 12l.9-.4a10.6 10.6 0 0 0-.2-.4 20.7 20.7 0 0 0-2.8-3.9c-2-2-5-4.3-8.9-4.3-3.9 0-6.9 2.2-8.9 4.3a20.7 20.7 0 0 0-2.8 3.9 12.4 12.4 0 0 0-.2.3s0 0 .9.5l-.9-.4a1 1 0 0 0 0 .8L1 12l-.9.4a8.3 8.3 0 0 0 .2.4 20.7 20.7 0 0 0 2.8 3.9c2 2 5 4.3 8.9 4.3 3.9 0 6.9-2.2 8.9-4.3a20.7 20.7 0 0 0 2.8-3.9 11.8 11.8 0 0 0 .2-.3s0 0-.9-.5zm0 0 .9.4a1 1 0 0 0 0-.8l-.9.4z" clip-rule="evenodd"/><path fill-rule="evenodd" d="M12 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-4 2a4 4 0 1 1 8 0 4 4 0 0 1-8 0z" clip-rule="evenodd"/></svg>'
+    },
+    "displayTotal": true
   },
   "data": [
     {
@@ -1006,7 +920,54 @@ const pieChart = {
   ]
 };
 
+const pieChart2 = {"config": {
+  "mainTitle": "A very simple pie chart about vegan diet",
+  "legendKey": "label",
+  "wrapper": document.querySelector('[data-graph="pie-compact"]'),
+  "id": performance.now(),
+  "donut": 0.8,
+  "unite": "parts",
+  "legend" : {
+    "hideButton": '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M2.1 12a18.7 18.7 0 0 0 2.5 3.3A10 10 0 0 0 12 19c3.1 0 5.6-1.8 7.4-3.7a18.7 18.7 0 0 0 2.5-3.3 18.7 18.7 0 0 0-2.5-3.3A10 10 0 0 0 12 5C8.9 5 6.4 6.8 4.6 8.7A18.7 18.7 0 0 0 2.1 12zM23 12l.9-.4a10.6 10.6 0 0 0-.2-.4 20.7 20.7 0 0 0-2.8-3.9c-2-2-5-4.3-8.9-4.3-3.9 0-6.9 2.2-8.9 4.3a20.7 20.7 0 0 0-2.8 3.9 12.4 12.4 0 0 0-.2.3s0 0 .9.5l-.9-.4a1 1 0 0 0 0 .8L1 12l-.9.4a8.3 8.3 0 0 0 .2.4 20.7 20.7 0 0 0 2.8 3.9c2 2 5 4.3 8.9 4.3 3.9 0 6.9-2.2 8.9-4.3a20.7 20.7 0 0 0 2.8-3.9 11.8 11.8 0 0 0 .2-.3s0 0-.9-.5zm0 0 .9.4a1 1 0 0 0 0-.8l-.9.4z" clip-rule="evenodd"/><path fill-rule="evenodd" d="M12 10a2 2 0 1 0 0 4 2 2 0 0 0 0-4zm-4 2a4 4 0 1 1 8 0 4 4 0 0 1-8 0z" clip-rule="evenodd"/></svg>',
+    "content": (data, index) => {return ` <div class="graph_legend_label">
+    <p id="${pieChart2.config.id + '-legend-meter-' + index}">${data.label}</p>
+    </div>
+    <button data-toggle>${pieChart2.config.legend.hideButton}</button>`}
+  },
+  "displayTotal": true
+},
+"data": [
+  {
+    "label": "Legumes",
+    "value": 3,
+    "color": "blue"
+  },
+  {
+    "label": "Grains",
+    "value": 5,
+    "color": "peru"
+  },
+  {
+    "label": "Fruits",
+    "value": 2,
+    "color": "red"
+  },
+  {
+    "label": "Nuts, oil",
+    "value": 1,
+    "color": "yellow"
+  },
+  {
+    "label": "Vegetables",
+    "value": 4,
+    "color": "green"
+  }
+]};
 
 const graphPie = new GraphPie(pieChart.data, pieChart.config);
 graphPie.init();
 graphPie.debug();
+
+const graphPie2 = new GraphPie(pieChart2.data, pieChart2.config);
+graphPie2.init();
+graphPie2.debug();

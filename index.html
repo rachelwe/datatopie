@@ -77,11 +77,10 @@
 
 <div class="graph_wrapper" data-graph="pie" style="width:400px;">
 </div>
-<!-- TODO : progressbar légendes en dessous avec bouton pour masquer
-     TODO : bouton de réglage - export, ajout de motifs ?
+<!-- TODO : bouton de réglage - export, ajout de motifs ?
      TODO : Animation -->
-
-<pie-chart id="demo" data="40;30;30;20;10;10" gap="0.06" donut="0.2" labels="Jaune;Vert;Orange;Bleu;Rouge;Bleu clair"></pie-chart>
+<div class="graph_wrapper is-compact" data-graph="pie-compact" style="width:400px;">
+</div>
 
 <script src="./dist/js/app.js"></script>
 <script defer>
@@ -129,7 +128,7 @@ const lineChart = {
 
 const graphLine = new GraphLine(lineChart.data, lineChart.config);
 graphLine.init();
-graphLine.debug();
+// graphLine.debug();
 
 
 </script>

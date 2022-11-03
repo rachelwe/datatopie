@@ -160,40 +160,6 @@ body {
         background-color: var(--data-color, #000);
       }
     }
-
-    meter {
-      appearance: none;
-  
-      display: block;
-      margin: 0 auto;
-      
-      width: 100%;
-      height: 10px;
-      border: 1px solid rgba(0, 0, 0, .1);
-      border-radius: 10px;
-      overflow: hidden;
-      
-      /* Firefox */
-      background: none; /* Required to get rid of the default background prop. */
-      background-color: rgba(0, 0, 0, .05);
-    }
-    
-    meter::-webkit-meter-bar {
-      background: none; /* Important to get rid of default background. */
-      background-color: rgba(0, 0, 0, .05);
-    }
-    
-    meter::-webkit-meter-optimum-value {
-      background: none;
-      background-color: var(--data-color);
-      width: 100% !important;
-    }
-    
-    meter::-moz-meter-bar {
-      background: none;
-      background-color: var(--data-color);
-
-    }
     button {
       width: 1.5rem;
       appearance: none;
@@ -201,6 +167,7 @@ body {
       background: transparent;
       padding: .15rem;
       margin: 0 0 0 1rem;
+      cursor: pointer;
     }
   }
   
@@ -225,6 +192,56 @@ body {
     padding: .5rem;
     background-color: transparentize(#00808B, .8);
     cursor: pointer;
+  }
+}
+
+
+
+.is-compact {
+  .graph_wrapper_legend {
+    text-align: center;
+  }
+
+  .graph_legend {
+    display: inline-flex;
+    align-content: center;
+    margin: 0 .5rem .5rem 0;
+    position: relative;
+
+    &_label {
+      margin: 0;
+
+      &::before {
+        content: "";
+        display: inline-block;
+        vertical-align: middle;
+        width: 1em;
+        height: 1em;
+        margin: auto .25rem;
+        background-color: var(--data-color, #000);
+        border-radius: 50%;
+      }
+    }
+
+    button {
+      font-size: 1rem;
+      margin-left: .2rem;
+      opacity: .5;
+      > * {
+        vertical-align: middle;
+        width: 1em;
+        height: 1em;
+      }
+      &::before {
+        content: "";
+        display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+      }
+    }
   }
 }
 

@@ -5,6 +5,7 @@
  * @version 0.1
  */
 
+import { applyPrettyNumber, getPercentageFromTotalOfObjectKey, getTotalFromObjectKey } from "./helpers/data";
 import { stringToDom, _createHTMLElement, _createSVGElement, _select, _selectAll } from "./helpers/dom";
 import { easeOutExpo } from "./helpers/draw";
 
@@ -21,6 +22,10 @@ class Point {
 
   toSvgPath () {
       return `${this.x} ${this.y}`
+  }
+
+  toArray () {
+    return [this.x, this.y];
   }
 
   static fromAngle (angle) {
@@ -49,6 +54,7 @@ export default class GraphPie {
     this.nodes = {};
     this.paths = {};
     this.tooltips = {};
+    this.output = {};
   }
 
   /**
@@ -71,8 +77,8 @@ export default class GraphPie {
           <g class="graph_data" data-datas data-hide="" mask="url(#graphMask)">
           </g>
           <mask id="graphMask">
-              <rect fill="white" x="-1" y="-1" width="2" height="2"/>
-              <circle r="${this.config.donut || .5}" fill="black"/>
+              <rect fill="white" x="-2" y="-2" width="4" height="4"/>
+              <circle r="${this.config.donut || 0}" fill="black"/>
           </mask>
         </svg>
         <div class="graph_tooltips" data-tooltips></div>
@@ -111,34 +117,55 @@ export default class GraphPie {
         {'class': "graph_tooltip"},
         {'data-value': data.value},
         {'data-color': data.color},
+        {'style': '--data-color:' + data.color},
         {'id': this.config.id + '-tooltip-' + index}
       ], `<p>${data.label}</p>
-      <p>${data.value}</p>
+      <p>${applyPrettyNumber(data.value, this.config.decimals || 2)}&nbsp;${this.config.unite} &ndash; ${applyPrettyNumber(this.output.percentages[index], this.config.decimals || 2)}&nbsp;%</p>
     `);
     })
   }
 
   /**
-   * Private function to create the diferent paths tags
-   * store the nodes created in this.path object for later use
+   * Private function to create the different legends
+   * store the nodes created in this.legend object for later use
+   * can be overwritten by this.config.legend properties
    */
    _setLegend() {
-    const total = this.datas.reduce((acc, v) => acc + v.value, 0);
+    this.config.legend = this.config.legend || {}
+    const elementAttributes = (data, index) => {return this.config.legend.attributes 
+          ? this.config.legend.attributes(data, index) 
+          : [
+              {'class': "graph_legend"},
+              {'data-value': data.value},
+              {'style': '--data-color:' + data.color + ';--data-percentage:' + this.output.percentages[index]},
+              {'data-index': index},
+              {'data-display': true},
+              {'id': this.config.id + '-legend-' + index}
+            ];}
+    const elementContent = (data, index) => {return this.config.legend.content 
+          ? this.config.legend.content(data, index) 
+          : ` <div class="graph_legend_label">
+                <p>${data.label}</p>
+                <p id="${this.config.id + '-legend-meter-' + index}">${applyPrettyNumber(data.value, this.config.decimals || 2)}&nbsp;${this.config.unite} &ndash; ${applyPrettyNumber(this.output.percentages[index], this.config.decimals || 2)}&nbsp;%</p>
+              </div>
+              <div class="meter" role="meter" aria-valuenow="${data.value}" aria-valuemin="0" aria-valuemax="${this.output.total}" aria-labelledby="${this.config.id + '-legend-meter-' + index}"></div>
+              <button data-toggle>${this.config.legend.hideButton}</button>`;}
+    this.config.legend.hideButton = this.config.legend.hideButton 
+          ? this.config.legend.hideButton 
+          : "cacher"
+    // We are not using the native meter element because custom styling is not supported in chrome
     this.legend = this.datas.map((data, index) => {
-      return _createHTMLElement(this.nodes.legend, 'div', [
-        {'class': "graph_legend"},
-        {'data-value': data.value},
-        {'style': '--data-color:' + data.color + ';--data-percentage:' + (data.value / total * 100)},
-        {'data-index': index},
-        {'data-display': true},
-        {'id': this.config.id + '-legend-' + index}
-      ], `<div class="graph_legend_label"><p>${data.label}</p>
-        <p id="${this.config.id + '-legend-meter-' + index}">${data.value}&nbsp;${this.config.unite}</p></div>
-      <!-- <meter min="0" max="${total}" value="${data.value}">${data.value} ${data.label}</meter> -->
-      <div class="meter" role="meter" aria-valuenow="${data.value}" aria-valuemin="0" aria-valuemax="${total}" aria-labelledby="${this.config.id + '-legend-meter-' + index}"></div>
-      <button data-toggle>${this.config.hideButton}</button>
-    `);
+      const appliedAttributes = elementAttributes(data, index);
+      console.log(appliedAttributes);
+      return _createHTMLElement(this.nodes.legend, 'div', elementAttributes(data, index), elementContent(data, index));
     })
+  }
+
+  _getDataGap(newData, oldData) {
+    const gap = newData.map((data, index) => {
+      return data.value - oldData[index].value;
+    })
+    return gap;
   }
 
   /**
@@ -160,20 +187,48 @@ export default class GraphPie {
    * @param {object} datas 
    */
   draw (datas = this.datas, progress = 1) {
-    const total = datas.reduce((acc, v) => acc + v.value, 0);
     let angle = Math.PI / -2
     let start = new Point(0, -1)
-    for (let k = 0; k < datas.length; k++) {
-        const ratio = (datas[k].value / total) * progress
-        if (progress === 1) {
-            this._positionLabel(this.tooltips[k], angle + ratio * Math.PI)
-        }
-        angle += ratio * 2 * Math.PI
-        const end = Point.fromAngle(angle)
-        const largeFlag = ratio > .5 ? '1' : '0'
-        this.paths[k].setAttribute('d', `M 0 0 L ${start.toSvgPath()} A 1 1 0 ${largeFlag} 1 ${end.toSvgPath()} L 0 0`)
-        start = end
+    datas.forEach((data, index) => {
+      const ratio = (data.value / getTotalFromObjectKey(datas, 'value')) * progress
+      if (progress === 1) {
+          this._positionLabel(this.tooltips[index], angle + ratio * Math.PI)
+      }
+
+      // TODO: best way to animate : interpolate values, not paths
+      angle += ratio * 2 * Math.PI
+      const end = Point.fromAngle(angle)
+      const largeFlag = ratio > .5 ? '1' : '0'
+      this.paths[index].setAttribute('d', `M 0 0 L ${start.toSvgPath()} A 1 1 0 ${largeFlag} 1 ${end.toSvgPath()} L 0 0`);
+      start = end
+    })
+    this.displayedDatas = [...datas];
+  }
+
+  update (newData, oldData = this.displayedDatas) {
+    let duration = 10
+
+    const dataGap = this._getDataGap(newData, oldData);
+    const dataIncrement = dataGap.map((data, index) => {
+      return data / duration;
+    })
+    let animatedData = [...oldData];
+
+    const launchDraw = () => {
+      duration += -1
+      if (duration > 1) {
+        this.draw(animatedData, 1)
+        animatedData = animatedData.map((data, index) => {
+          const temp = {...data};
+          temp.value = data.value + dataIncrement[index];
+          return temp
+        })
+        window.requestAnimationFrame(launchDraw)
+      } else {
+        this.draw(newData, 1);
+      }
     }
+    window.requestAnimationFrame(launchDraw)
   }
 
   animate (datas = this.datas) {
@@ -210,12 +265,12 @@ export default class GraphPie {
       delete dataIndex.display;
     }
 
-    const displayedData = this.datas.map((data, index) => {
+    const updatedData = this.datas.map((data, index) => {
       const newData = {...data};
       if (newData.display === false) {newData.value = 0}
       return newData;
     });
-    this.draw(displayedData);
+    this.update(updatedData)
   }
 
   _events() {
@@ -251,6 +306,8 @@ export default class GraphPie {
   }
 
   init() {
+    this.output.total = getTotalFromObjectKey(this.datas, 'value');
+    this.output.percentages = getPercentageFromTotalOfObjectKey(this.datas, 'value', this.output.total)
     this._setTemplate();
     this._setPaths();
     this._setTooltips();
@@ -263,3 +320,6 @@ export default class GraphPie {
 }
 
 // TODO: switch all class selectors for data-attributes & document a naming system.
+// TODO: implement hooks with default for tooltips, legends etc.
+// TODO: better way to define css variables
+// TODO: make it exportable (call the css inside the svg ?)
