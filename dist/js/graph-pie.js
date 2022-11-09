@@ -230,9 +230,10 @@ class GraphPie {
       `<div class="graph_wrapper_svg">
         <svg class="graph" aria-labelledby="${this.config.id}-title" id="${this.config.id}" viewBox="-1 -1 2 2">
           <title id="${this.config.id}-title">${this.config.mainTitle}</title>
-          <g class="graph_data" data-datas data-hide="" mask="url(#graphMask)">
+          <g class="graph_data" data-datas data-hide="" mask="url(#${this.config.id}-mask)">
           </g>
-          <mask id="graphMask">
+          <circle r="${this.config.donut + .01 || 0}" fill="white" mask="url(#${this.config.id}-mask)"/>
+          <mask id="${this.config.id}-mask">
               <rect fill="white" x="-2" y="-2" width="4" height="4"/>
               <circle r="${this.config.donut || 0}" fill="black"/>
           </mask>
@@ -254,6 +255,8 @@ class GraphPie {
     this.paths = this.datas.map((data, index) => {
       return _createSVGElement(this.nodes.data, 'path', [
         {'fill': data.color},
+        {'stroke': "#fff"},
+        {'stroke-width': "0.01px"},
         {'data-value': data.value},
         {'data-label': data.label},
         {'id': this.config.id + '-path-' + index},
@@ -334,8 +337,9 @@ class GraphPie {
         return;
     }
     const point = Point.fromAngle(angle);
-    label.style.setProperty('top', `${(point.y * 0.5 + 0.5) * 100}%`);
-    label.style.setProperty('left', `${(point.x * 0.5 + 0.5) * 100}%`);
+    label.style.setProperty('--y', `${(point.y * 0.5 + 0.5) * 100}%`);
+    label.style.setProperty('--x', `${(point.x * 0.5 + 0.5) * 100}%`);
+    label.setAttribute("data-side", point.x > 0 ? "right" : "left");
   }
 
   /**

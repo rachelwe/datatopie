@@ -4,6 +4,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  background-color: #f2f2f2;
 }
 
 .graph {
@@ -101,9 +102,17 @@ body {
     min-width: 5rem;
     margin-left: calc(var(--translate-left) * 1px);
     margin-top: calc(var(--translate-top) * 1px);
-    top: calc(var(--top) * 1px);
-    left: calc(var(--left) * 1px);
     z-index: -1;
+
+    &[data-side="left"] {
+      top: var(--y);
+      left: var(--x);
+    }
+    
+    &[data-side="right"] {
+      top: var(--y);
+      right: calc(100% - var(--x));
+    }
     
     p {
       margin: 0;
