@@ -2,6 +2,7 @@
  * A module to generate a pie or donut chart
  * @author Rachel Pellin <pellin.rachel@gmail.com>
  * @license MIT License Copyright (c) 2022 Rachel Pellin
+ * @link https://github.com/rachelwe/datatopie
  * @version 0.1
  */
 

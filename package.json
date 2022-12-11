@@ -23,7 +23,7 @@
     "graph"
   ],
   "author": "Rachel Pellin",
-  "license": "UNLICENSED",
+  "license": "MIT",
   "private": true,
   "devDependencies": {
     "autoprefixer": "^10.2.4",
