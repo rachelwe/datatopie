@@ -869,9 +869,9 @@ class GraphPie {
 
     if (!donutOnly) {
       this.datas = newData;
-      this._updateLegends();
       this.output.total = getTotalFromObjectKey(newData, 'value');
       this.output.percentages = getPercentageFromTotalOfObjectKey(newData, 'value', this.output.total);
+      this._updateLegends();
     }
     this._updatePaths();
     this._updateTooltips();
