@@ -64,12 +64,31 @@ export function _createSVGElement(parent, nodeType, attributes, content) {
 }
 
 /**
- * Utility for creating and inserting into the DOM a new SVG element
+ * Utility for updating an SVG element
+ * @param {node} element - the element modified
+ * @param {Object[]} attributes - array of attributes
+ * @param {string} [content] - Optional textContent of the node
+ * @returns {node} SVG element created
+ * 
+ * @example
+ * const labelY = _updateSVGElement(someNodeVariable, [
+ *   {'x': 10},
+ *   {'y': 50},
+ * ], 'I am the label of Y axis');
+ */
+export function _updateSVGElement(element, attributes, content) {
+  _setAttributesNS(element, attributes);
+  if(content) {element.innerHTML = content;}
+  return element;
+}
+
+/**
+ * Utility for creating and inserting into the DOM a new HTML element
  * @param {node} parent - node in which the new element is inserted
  * @param {string} nodeType - type of node created (line, circle, text...)
  * @param {Object[]} attributes - array of attributes
  * @param {string} [content] - Optional textContent of the node
- * @returns {node} SVG element created
+ * @returns {node} element created
  * 
  * @example
  * const labelY = _createHTMLElement(someNodeVariable, 'text', [
@@ -84,6 +103,28 @@ export function _createSVGElement(parent, nodeType, attributes, content) {
   parent.appendChild(element);
   return element;
 }
+
+
+/**
+ * Utility for updating an HTML element
+ * @param {node} element - the element modified
+ * @param {Object[]} attributes - array of attributes
+ * @param {string} [content] - Optional textContent of the node
+ * @returns {node} HTML element modified
+ * 
+ * @example
+ * const labelY = _updateHTMLElement(someNodeVariable, [
+ *   {'hidden': true},
+ *   {'label': 50},
+ * ], 'I am the content');
+ */
+export function _updateHTMLElement(element, attributes, content) {
+  _setAttributes(element, attributes);
+  if(content) {element.innerHTML = content;}
+  return element;
+}
+
+// TODO: ameliorer debud output (titre avec group, couleurs, stats (nombre de datas, type de chaque item de premier niveau en tableau...))
 
 /**
  * Helper fonction for querySelector()

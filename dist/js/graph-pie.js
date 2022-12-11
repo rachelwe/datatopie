@@ -39,7 +39,7 @@ function getPercentageFromTotalOfObjectKey(object, key, total) {
 function applyPrettyNumber(number, decimals = 2) {
   if (!number || Number.isNaN(number)) return 0;
   let parts = parseFloat(number.toFixed(decimals)).toString().split(".");
-  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, "\u00A0");
   return parts.join(".");
 }
 
@@ -107,12 +107,31 @@ function _createSVGElement(parent, nodeType, attributes, content) {
 }
 
 /**
- * Utility for creating and inserting into the DOM a new SVG element
+ * Utility for updating an SVG element
+ * @param {node} element - the element modified
+ * @param {Object[]} attributes - array of attributes
+ * @param {string} [content] - Optional textContent of the node
+ * @returns {node} SVG element created
+ * 
+ * @example
+ * const labelY = _updateSVGElement(someNodeVariable, [
+ *   {'x': 10},
+ *   {'y': 50},
+ * ], 'I am the label of Y axis');
+ */
+function _updateSVGElement(element, attributes, content) {
+  _setAttributesNS(element, attributes);
+  if(content) {element.innerHTML = content;}
+  return element;
+}
+
+/**
+ * Utility for creating and inserting into the DOM a new HTML element
  * @param {node} parent - node in which the new element is inserted
  * @param {string} nodeType - type of node created (line, circle, text...)
  * @param {Object[]} attributes - array of attributes
  * @param {string} [content] - Optional textContent of the node
- * @returns {node} SVG element created
+ * @returns {node} element created
  * 
  * @example
  * const labelY = _createHTMLElement(someNodeVariable, 'text', [
@@ -127,6 +146,28 @@ function _createSVGElement(parent, nodeType, attributes, content) {
   parent.appendChild(element);
   return element;
 }
+
+
+/**
+ * Utility for updating an HTML element
+ * @param {node} element - the element modified
+ * @param {Object[]} attributes - array of attributes
+ * @param {string} [content] - Optional textContent of the node
+ * @returns {node} HTML element modified
+ * 
+ * @example
+ * const labelY = _updateHTMLElement(someNodeVariable, [
+ *   {'hidden': true},
+ *   {'label': 50},
+ * ], 'I am the content');
+ */
+function _updateHTMLElement(element, attributes, content) {
+  _setAttributes(element, attributes);
+  if(content) {element.innerHTML = content;}
+  return element;
+}
+
+// TODO: ameliorer debud output (titre avec group, couleurs, stats (nombre de datas, type de chaque item de premier niveau en tableau...))
 
 /**
  * Helper fonction for querySelector()
@@ -251,18 +292,26 @@ class GraphPie {
    * Private function to create the diferent paths tags
    * store the nodes created in this.path object for later use
    */
-  _setPaths() {
+  _setPathTemplate(data, index) {
+    return [
+      {'fill': data.color},
+      {'stroke': "#fff"},
+      {'stroke-width': "0.01px"},
+      {'data-value': data.value},
+      {'data-label': data.label},
+      {'id': this.config.id + '-path-' + index},
+      {'aria-labelledby': this.config.id + '-tooltip-' + index},
+      {'tabindex': 0}
+    ]
+  }
+
+  /**
+   * Private function to create the diferent paths tags
+   * store the nodes created in this.path object for later use
+   */
+  _createPaths() {
     this.paths = this.datas.map((data, index) => {
-      return _createSVGElement(this.nodes.data, 'path', [
-        {'fill': data.color},
-        {'stroke': "#fff"},
-        {'stroke-width': "0.01px"},
-        {'data-value': data.value},
-        {'data-label': data.label},
-        {'id': this.config.id + '-path-' + index},
-        {'aria-labelledby': this.config.id + '-tooltip-' + index},
-        {'tabindex': 0}
-      ]);
+      return _createSVGElement(this.nodes.data, 'path', this._setPathTemplate(data, index));
     });
   }
 
@@ -270,9 +319,18 @@ class GraphPie {
    * Private function to create the diferent paths tags
    * store the nodes created in this.path object for later use
    */
-   _setTooltips() {
-    this.tooltips = this.datas.map((data, index) => {
-      return _createHTMLElement(this.nodes.tooltips, 'div', [
+  _updatePaths() {
+    this.paths = this.datas.map((data, index) => {
+      return _updateSVGElement(this.paths[index], this._setPathTemplate(data, index));
+    });
+  }
+
+  /**
+   * Private function to create the diferent paths tags
+   * store the nodes created in this.path object for later use
+   */
+   _setTooltipTemplate(data, index) {
+      return [[
         {'class': "graph_tooltip"},
         {'data-value': data.value},
         {'data-color': data.color},
@@ -280,7 +338,26 @@ class GraphPie {
         {'id': this.config.id + '-tooltip-' + index}
       ], `<p>${data.label}</p>
       <p>${applyPrettyNumber(data.value, this.config.decimals || 2)}&nbsp;${this.config.unite} &ndash; ${applyPrettyNumber(this.output.percentages[index], this.config.decimals || 2)}&nbsp;%</p>
-    `);
+    `]
+  }
+
+  /**
+   * Private function to create the diferent paths tags
+   * store the nodes created in this.path object for later use
+   */
+   _createTooltips() {
+    this.tooltips = this.datas.map((data, index) => {
+      return _createHTMLElement(this.nodes.tooltips, 'div', ...this._setTooltipTemplate(data, index));
+    });
+  }
+
+  /**
+   * Private function to create the diferent paths tags
+   * store the nodes created in this.path object for later use
+   */
+   _updateTooltips() {
+    this.tooltips = this.datas.map((data, index) => {
+      return _updateHTMLElement(this.tooltips[index], ...this._setTooltipTemplate(data, index));
     });
   }
 
@@ -289,7 +366,7 @@ class GraphPie {
    * store the nodes created in this.legend object for later use
    * can be overwritten by this.config.legend properties
    */
-   _setLegend() {
+   _setLegendTemplate(data, index) {
     this.config.legend = this.config.legend || {};
     const elementAttributes = (data, index) => {return this.config.legend.attributes 
           ? this.config.legend.attributes(data, index) 
@@ -313,10 +390,29 @@ class GraphPie {
           ? this.config.legend.hideButton 
           : "cacher";
     // We are not using the native meter element because custom styling is not supported in chrome
+
+    return [elementAttributes(data, index), elementContent(data, index)];
+  }
+  
+  /**
+   * Private function to create the different legends
+   * store the nodes created in this.legend object for later use
+   * can be overwritten by this.config.legend properties
+   */
+  _createLegends() {
     this.legend = this.datas.map((data, index) => {
-      const appliedAttributes = elementAttributes(data, index);
-      console.log(appliedAttributes);
-      return _createHTMLElement(this.nodes.legend, 'div', elementAttributes(data, index), elementContent(data, index));
+      return _createHTMLElement(this.nodes.legend, 'div', ...this._setLegendTemplate(data, index));
+    });
+  }
+
+  /**
+   * Private function to create the different legends
+   * store the nodes created in this.legend object for later use
+   * can be overwritten by this.config.legend properties
+   */
+  _updateLegends() {
+    this.legend = this.datas.map((data, index) => {
+      return _updateHTMLElement(this.legend[index], ...this._setLegendTemplate(data, index));
     });
   }
 
@@ -365,7 +461,7 @@ class GraphPie {
     this.displayedDatas = [...datas];
   }
 
-  update (newData, oldData = this.displayedDatas) {
+  update (newData, donutOnly = false, oldData = this.displayedDatas) {
     let duration = 10;
 
     const dataGap = this._getDataGap(newData, oldData);
@@ -373,6 +469,15 @@ class GraphPie {
       return data / duration;
     });
     let animatedData = [...oldData];
+
+    if (!donutOnly) {
+      this.datas = newData;
+      this._updateLegends();
+      this.output.total = getTotalFromObjectKey(newData, 'value');
+      this.output.percentages = getPercentageFromTotalOfObjectKey(newData, 'value', this.output.total);
+    }
+    this._updatePaths();
+    this._updateTooltips();
 
     const launchDraw = () => {
       duration += -1;
@@ -430,7 +535,7 @@ class GraphPie {
       if (newData.display === false) {newData.value = 0;}
       return newData;
     });
-    this.update(updatedData);
+    this.update(updatedData, true);
   }
 
   _events() {
@@ -469,9 +574,9 @@ class GraphPie {
     this.output.total = getTotalFromObjectKey(this.datas, 'value');
     this.output.percentages = getPercentageFromTotalOfObjectKey(this.datas, 'value', this.output.total);
     this._setTemplate();
-    this._setPaths();
-    this._setTooltips();
-    this._setLegend();
+    this._createPaths();
+    this._createTooltips();
+    this._createLegends();
     this.config.wrapper.appendChild(this.nodes.donut);
     this.config.wrapper.appendChild(this.nodes.legend);
     this.animate();

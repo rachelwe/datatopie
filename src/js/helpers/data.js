@@ -81,6 +81,6 @@ export function getPercentageFromMaxOfObjectKey(object, key, max) {
 export function applyPrettyNumber(number, decimals = 2) {
   if (!number || Number.isNaN(number)) return 0;
   let parts = parseFloat(number.toFixed(decimals)).toString().split(".");
-  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, "\u00A0");
   return parts.join(".");
 }
