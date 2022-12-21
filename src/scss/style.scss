@@ -59,8 +59,17 @@ body {
       stroke: transparent;
       border-radius: 50%; // for the lucky ppl who use firefox
 
-      &[aria-labelledby*="visitors"] {
-        --graph-color: rgb(116, 214, 116);
+      &[aria-labelledby*="2019"] {
+        --graph-color: red;
+      }
+      &[aria-labelledby*="2020"] {
+        --graph-color: yellow;
+      }
+      &[aria-labelledby*="2021"] {
+        --graph-color: aqua;
+      }
+      &[aria-labelledby*="2022"] {
+        --graph-color: rgb(99, 199, 99);
       }
       
       &:focus {

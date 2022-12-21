@@ -13,6 +13,8 @@ function buildConfig(inputFileName, outputFileName) {
 export default [
 	buildConfig('script.js', 'app'),
 	buildConfig('graph-pie.js', 'graph-pie'),
+	buildConfig('graph-line-only.js', 'graph-line'),
+	buildConfig('graph-lineV2.js', 'graph-lineV2'),
 ]
 
 // export default {
